@@ -2,11 +2,11 @@
   // Создаем массив с делами
   let todoListsMas = [];
 
-  // создаем и возвращаем заголовок приложения 
+  // создаем и возвращаем заголовок списка 
   function createAppTitle(title) {
-      let appTitle = document.createElement('h2');
-      appTitle.innerHTML = title;
-      return appTitle;
+    let appTitle = document.createElement('h2');
+    appTitle.innerHTML = title;
+    return appTitle;
   }
 
   // создаем и возвращаем форму для создания дела
@@ -52,7 +52,6 @@
       done: todoItemDone
     };
 
-
     let item = document.createElement('li');
     
     // кнопки помещаем в элемент, который красиво покажет их в одной группе
@@ -88,8 +87,20 @@
   }
 
   function createTodoApp(container , title = 'Список дел', listName) { 
-
-
+    
+    let todoAppTitle = createAppTitle(title);
+    let todoItemForm = createTodoItemForm();
+    let todoList = createTodoList();
+    
+    // если значение элемента ввода не является пустой строкой, включаем кнопку
+    todoItemForm.input.addEventListener('input' , function(){
+      if (todoItemForm.input.value.trim() !== '') {
+        todoItemForm.button.disabled = false;
+      }
+      else {
+        todoItemForm.button.disabled = true;
+      }
+    });
 
     //Создаем переменную выгрузки массива из LocalStorage
     let loadListTodo = JSON.parse(localStorage.getItem(listName));
@@ -98,71 +109,11 @@
     function saveListTodo() {
       localStorage.setItem(listName, JSON.stringify(todoListsMas));
     }
-
-    let todoAppTitle = createAppTitle(title);
-    let todoItemForm = createTodoItemForm();
-    let todoList = createTodoList();
-    //отключаем кнопку пока не начали вводить текст в Input 
-    todoItemForm.button.disabled = true;
-
-    container.append(todoAppTitle);
-    container.append(todoItemForm.form);
-    container.append(todoList);
-    
-    if (loadListTodo) {
-      loadListTodo.forEach(function(item) {
-      let todoItem = createTodoItem(item.name);
-      todoItem.item.dataset.id = item.id;
-      todoItem.todo.done = item.done;
-      if (item.done) {
-        todoItem.item.classList.add('list-group-item-success');
-      }
-      todoItem.doneButton.addEventListener('click', function() {
+    // Создаем функцию оброботчика кнопок
+    function addListeners(todoItem, todoListsMas) {
+      // обработчик на кнопку "Готово"
+      todoItem.doneButton.addEventListener('click', () => {
         todoItem.item.classList.toggle('list-group-item-success');
-        todoItem.todo.done = !todoItem.todo.done;
-        saveListTodo();
-      });
-      todoItem.deleteButton.addEventListener('click', function() {
-      if (confirm('Вы уверены?')) {
-        todoItem.item.remove();
-        // Удаляем дело из массива
-        const idToDelete = todoItem.todo.id;
-        const indexToDelete = todoListsMas.findIndex(todo => todo.id === idToDelete);
-        if (indexToDelete !== -1) {
-          todoListsMas.splice(indexToDelete, 1);
-          saveListTodo();
-        }
-      }
-    });
-    todoList.append(todoItem.item);
-  });
-}
-
-    // если значение элемента ввода не является пустой строкой, включаем кнопку
-    todoItemForm.input.addEventListener('input' , function(){
-      if (todoItemForm.input.value.trim() !== '') {
-        todoItemForm.button.disabled = false;
-      }
-    });
-
-    //браузер создает событие submit на форме по нажатию на Enter или на кнопку создания дела
-    todoItemForm.form.addEventListener('submit' , function(e) {
-      // эта строчка нужна, что бы предотвратить стандартное действие браузера
-      // в данном случае мы не хотим, что бы страница перезагружалась при отправке формы
-      e.preventDefault();
-      saveListTodo();
-      
-
-      let todoItem = createTodoItem(todoItemForm.input.value);
-
-      //отключаем кнопку в форме после создания дела ведь строка Input опять пуста 
-      todoItemForm.button.disabled = true;
-
-      // добовляем обработчики на кнопки 
-      todoItem.doneButton.addEventListener('click' , function() {
-        todoItem.item.classList.toggle('list-group-item-success');
-
-        // изменяем статус Done при нажатии на кнопку doneButton
         const idToUpdate = todoItem.todo.id;
         const indexToUpdate = todoListsMas.findIndex(todo => todo.id === idToUpdate);
         if (indexToUpdate !== -1) {
@@ -170,11 +121,11 @@
           saveListTodo();
         }
       });
-      // добовляем обработчики на кнопки 
-      todoItem.deleteButton.addEventListener('click' , function() {
+    
+      // обработчик на кнопку "Удалить"
+      todoItem.deleteButton.addEventListener('click', () => {
         if (confirm('Вы уверены?')) {
           todoItem.item.remove();
-          // Удаляем дело из массива
           const idToDelete = todoItem.todo.id;
           const indexToDelete = todoListsMas.findIndex(todo => todo.id === idToDelete);
           if (indexToDelete !== -1) {
@@ -183,6 +134,39 @@
           }
         }
       });
+    }
+    container.append(todoAppTitle);
+    container.append(todoItemForm.form);
+    container.append(todoList);
+    
+    //отключаем кнопку пока не начали вводить текст в Input 
+    todoItemForm.button.disabled = true;
+    
+    if (loadListTodo) {
+      loadListTodo.forEach(function(item) {
+        let todoItem = createTodoItem(item.name);
+        todoItem.item.dataset.id = item.id;
+        todoItem.todo.done = item.done;
+        todoList.append(todoItem.item);
+        if (item.done) {
+          todoItem.item.classList.add('list-group-item-success');
+        }
+        addListeners(todoItem, todoListsMas);
+      });
+    }
+    //браузер создает событие submit на форме по нажатию на Enter или на кнопку создания дела
+    todoItemForm.form.addEventListener('submit' , function(e) {
+      // эта строчка нужна, что бы предотвратить стандартное действие браузера
+      // в данном случае мы не хотим, что бы страница перезагружалась при отправке формы
+      e.preventDefault();
+      saveListTodo();
+      
+      let todoItem = createTodoItem(todoItemForm.input.value);
+
+      //отключаем кнопку в форме после создания дела ведь строка Input опять пуста 
+      todoItemForm.button.disabled = true;
+
+      addListeners(todoItem, todoListsMas);
       // создаем и добавляем в список новое дело с названием из поля для ввода
       todoList.append(todoItem.item);
       saveListTodo();
